@@ -1,0 +1,236 @@
+HƯỚNG DẪN NỘP BÀI — IBM FULL-STACK DEALERSHIP CAPSTONE
+28 mục / 50 điểm — Chuẩn bị ngày 26/11/2026
+
+PROJECT TITLE (copy vào ô tiêu đề)
+Best Cars: Full-Stack Dealership Review Platform
+
+BÀI NÀY CẦN NỘP
+- Task 1: URL public fork GitHub của chính bạn, có toàn bộ mã đã hoàn thiện.
+- Task 24: URL triển khai Django thật.
+- 26 file ảnh tương ứng các task còn lại.
+
+TRẠNG THÁI CỦA MÃ NGUỒN
+Đã hoàn thiện Django, React, Express/MongoDB và Flask/VADER.
+Đã chạy 10 test Django, 5 test Node và 6 test Flask thành công.
+Kiểm thử HTTP tích hợp với MongoDB thật đã xác nhận:
+- 50 đại lý; 1 đại lý Kansas; dealer 15 có 3 đánh giá gốc.
+- 5 hãng xe và 153 bản ghi mẫu xe.
+- Đăng ký, đăng nhập, đăng xuất và bảo vệ CSRF hoạt động.
+- Chỉ người đăng nhập được đăng review; tác giả lấy từ session.
+- Review được lưu trong MongoDB và đọc lại đúng dữ liệu đã gửi.
+- Dịch vụ cảm xúc hoạt động và được Django gọi thật.
+
+Ảnh mang địa chỉ 127.0.0.1/localhost là ảnh kiểm tra chạy cục bộ. Chụp lại trong
+lab mà đề yêu cầu. Ảnh cục bộ không chứng minh đã deploy lên IBM Cloud.
+File workflow có sẵn cũng chưa phải bằng chứng CI/CD đã chạy trên GitHub.
+
+1. CHẠY NHANH ỨNG DỤNG
+
+Giải nén Dealership_Capstone_Source.zip và mở terminal trong thư mục dự án.
+Cần Docker Engine + Docker Compose v2 và Python 3.
+
+   python3 scripts/create_env.py
+   docker compose up --build
+
+Mở:
+   Django + React: http://localhost:8000
+   Express API:   http://localhost:3030
+   Sentiment API: http://localhost:5050
+
+Tạo tài khoản quản trị của bạn:
+   docker compose exec web python manage.py createsuperuser --username root
+
+Đăng ký tài khoản người dùng qua /register để thực hiện các bước login/review.
+Không có tài khoản admin mặc định hay mật khẩu production dùng chung.
+
+Nếu lab cấp URL proxy, cập nhật file .env:
+- DJANGO_ALLOWED_HOSTS: hostname thật, không có https:// hoặc đường dẫn.
+- DJANGO_CSRF_TRUSTED_ORIGINS: origin thật gồm https:// và hostname.
+- DJANGO_SECURE_COOKIES=1 cho HTTPS; dùng 0 khi chạy HTTP cục bộ.
+Khởi động lại service web sau khi đổi cấu hình.
+
+2. TASK 2 — CHẠY DJANGO DEVELOPMENT SERVER TRONG LAB
+
+Đề muốn ảnh server chạy từ lab Static Pages. Sau khi cài Python 3.12 và
+Node 22.12+, có thể chạy web ngoài container để lấy ảnh terminal này.
+Các dịch vụ Mongo/Express/Sentiment cần đang chạy:
+
+   docker compose up -d mongo backend sentiment
+
+Trong một terminal khác, cài và build frontend:
+
+   cd server/frontend
+   npm ci
+   npm run build
+   cd ..
+   python3 -m venv .venv
+   . .venv/bin/activate
+   pip install -r requirements.txt
+   python manage.py migrate
+   python manage.py seed_cars
+   python manage.py runserver 0.0.0.0:8000
+
+Nếu service web trong Compose đang dùng port 8000, dừng riêng service đó trước:
+   docker compose stop web
+
+Đặt BACKEND_URL=http://127.0.0.1:3030 và
+SENTIMENT_ANALYZER_URL=http://127.0.0.1:5050 cho Django chạy ngoài Compose.
+Nếu Express có WRITE_API_TOKEN, Django cần BACKEND_WRITE_API_TOKEN cùng giá trị.
+Giữ các biến bí mật trong .env, không đưa vào ảnh hay commit.
+
+3. TASK 1 VÀ TASK 23 — GITHUB VÀ CI/CD
+
+Fork repository gốc:
+https://github.com/ibm-developer-skills-network/xrwvm-fullstack_developer_capstone
+
+Clone fork của chính bạn. Copy nội dung dự án hoàn thiện vào clone, giữ nguyên
+thư mục .git của clone. Trong repository:
+
+   git add .
+   git commit -m "Complete dealership capstone application"
+   git push origin main
+
+Task 1: dùng URL thực tế của fork sau khi push thành công.
+Không nộp URL repository gốc của IBM thay cho fork của bạn.
+
+Mở tab Actions trên fork, chạy/chờ workflow "Capstone CI".
+Workflow kiểm tra Django, build React, chạy test Express và build container.
+Task 23: chụp trang run thành công, thấy tên workflow/repository và các job xanh.
+Workflow còn chạy ứng dụng thật và tạo artifact dealership-local-evidence gồm
+ảnh trình duyệt cục bộ. Tải artifact từ trang run sau khi nó thực sự hoàn tất.
+Ảnh localhost trong artifact vẫn cần chụp lại trong lab nếu đề yêu cầu.
+Không dùng ảnh file YAML hay log kiểm thử cục bộ thay cho run GitHub.
+
+Có thêm hai workflow chạy thủ công:
+- Publish capstone images: build/push 3 image lên GitHub Container Registry.
+- Deploy capstone to Kubernetes: deploy bằng kubeconfig được cấp và namespace thật.
+
+4. TASK 16 VÀ TASK 24–28 — DEPLOY THẬT
+
+Mở deploy/README.md trong mã nguồn. File này có:
+- Cách publish image có tag là commit thật.
+- Cách triển khai sentiment lên IBM Code Engine.
+- Cách triển khai Django/Express/Mongo/Sentiment vào Kubernetes trong lab.
+- Cách đặt host/origin, secret, image và cấu hình lưu dữ liệu.
+
+Dùng namespace, registry, Code Engine project và URL do lab của bạn cấp.
+Task 16: ảnh endpoint sentiment qua URL đã triển khai.
+Task 24: nhập origin thật của ứng dụng Django đã triển khai.
+Task 25–28: chụp từ cùng origin đó. Đường dẫn /dealer/15 hoặc /postreview/15 có
+thể khác nhau; scheme và hostname phải khớp URL ở Task 24.
+
+Không dùng URL localhost làm URL triển khai cloud.
+Không điền một đường dẫn GitHub/IBM Cloud chưa tồn tại.
+
+5. DANH SÁCH ẢNH ĐÚNG TÊN
+
+Task 2 — django_server.png
+Terminal có "System check identified no issues" và "Starting development server".
+
+Task 3 — about_us.png
+Trang About Us. Ứng dụng có route /about và file Static Pages /static/About.html.
+
+Task 4 — contact_us.png
+Trang Contact Us. Có route /contact và /static/Contact.html.
+
+Task 5 — login.png
+Trang Home sau đăng nhập, thấy username.
+
+Task 6 — logout.png
+Thông báo "You have been successfully logged out." sau bấm Logout.
+
+Task 7 — sign-up.png
+Trang /register với các trường đăng ký.
+
+Task 8 — dealer_review.png
+Mở Express /fetchReviews/dealer/15. Dealer 15 có review trong dữ liệu gốc.
+Thanh địa chỉ phải thấy endpoint.
+
+Task 9 — dealerships.png
+Mở Express /fetchDealers. Thấy danh sách và thanh địa chỉ.
+
+Task 10 — dealer_details.png
+Mở Express /fetchDealer/15. Thấy chi tiết đại lý và thanh địa chỉ.
+
+Task 11 — kansasDealers.png
+Mở Express /fetchDealers/Kansas. Dữ liệu Kansas có dealer 8, Bytecard Car Dealership.
+
+Task 12 — admin_login.png
+/admin/ sau đăng nhập tài khoản superuser/root. Thấy thông tin tài khoản admin.
+
+Task 13 — admin_logout.png
+Màn hình xác nhận đã đăng xuất khỏi Django admin.
+
+Task 14 — cars.png
+/admin/djangoapp/carmake/, có dữ liệu hãng xe và thanh địa chỉ.
+
+Task 15 — car_models.png
+/admin/djangoapp/carmodel/, có dữ liệu mẫu xe.
+
+Task 16 — sentiment_analyzer.png
+Endpoint sentiment trên URL ĐÃ DEPLOY. Ví dụ đường dẫn:
+/analyze/I%20love%20the%20excellent%20service
+Thấy kết quả sentiment và thanh địa chỉ.
+
+Task 17 — get_dealers.png
+Trang Home trước đăng nhập, thấy danh sách đại lý và thanh địa chỉ.
+
+Task 18 — get_dealers_loggedin.png
+Trang Home sau đăng nhập, thấy username, nút Post Review và thanh địa chỉ.
+
+Task 19 — dealersbystate.png
+Chọn Kansas trong Filter by state. Thấy bộ lọc và kết quả tương ứng.
+
+Task 20 — dealer_id_reviews.png
+Trang /dealer/15 có thông tin đại lý và các review, kèm thanh địa chỉ.
+
+Task 21 — dealership_review_submission.png
+Điền form Post Review rồi CHỤP TRƯỚC KHI BẤM SUBMIT.
+Ghi nhớ chính xác review, make/model/year và purchase date.
+
+Task 22 — added_review.png
+Sau Submit, chụp review vừa lưu. Các dữ liệu phải khớp Task 21.
+
+Task 23 — CICD.png
+Trang GitHub Actions có run thành công thật.
+
+Task 25 — deployed_landingpage.png
+Trang đầu ứng dụng qua URL Task 24, thấy thanh địa chỉ.
+
+Task 26 — deployed_loggedin.png
+Ứng dụng deployed sau đăng nhập, thấy username và thanh địa chỉ.
+
+Task 27 — deployed_dealer_detail.png
+Trang dealer của ứng dụng deployed, thấy chi tiết/review và thanh địa chỉ.
+
+Task 28 — deployed_add_review.png
+Review được đăng qua ứng dụng deployed, thấy nội dung và thanh địa chỉ.
+
+Đề cũng chấp nhận .jpg. Mỗi ô tải đúng một ảnh tương ứng.
+Không cắt mất thanh địa chỉ ở những mục yêu cầu endpoint.
+Không ghép một URL khác vào ảnh hay thay log lỗi bằng chữ thành công.
+
+6. THỨ TỰ CHỤP ĐỂ ÍT PHẢI LÀM LẠI
+
+- Server → About → Contact → Sign-up → Home chưa login.
+- Bốn endpoint Express.
+- Admin login → Car Makes → Car Models → Admin logout.
+- User login → Home đã login → Filter Kansas → Dealer có reviews.
+- Điền Post Review → chụp trước submit → submit → chụp review vừa lưu.
+- Logout → chụp thông báo.
+- GitHub Actions thành công.
+- Sentiment deployed và bốn trang Django deployed.
+
+7. NGUỒN VÀ CẤU TRÚC
+
+Mã gốc IBM (Apache-2.0):
+https://github.com/ibm-developer-skills-network/xrwvm-fullstack_developer_capstone
+Commit nguồn: 6bf6c0a1d8dedb6d949c9878a99fafa33168319c
+
+docs/RUBRIC_CHECKLIST.md: bảng 28 task, điểm và tên ảnh.
+docs/validation/: báo cáo các lần kiểm thử thật.
+deploy/README.md: hướng dẫn triển khai.
+README.md: cấu trúc và lệnh chạy.
+
+Điều còn cần cho bài nộp cuối: fork công khai đã push, CI run thành công,
+URL triển khai thật và ảnh đúng môi trường lab/deployment của bạn.

@@ -1,17 +1,19 @@
 {
-  "name": "database",
+  "name": "dealership-mongo-api",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "Express and MongoDB dealership/review service",
   "main": "app.js",
+  "license": "Apache-2.0",
+  "engines": {"node": ">=22"},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "test": "node --test test/*.test.js",
+    "check": "node --check app.js"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",    
-    "express": "^4.18.2",
-    "mongodb": "^6.3.0",
-    "mongoose": "^8.0.1"
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "mongoose": "^8.19.0"
   }
 }

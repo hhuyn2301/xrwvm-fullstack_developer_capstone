@@ -1,2 +1,5 @@
+"""Compatibility entry point for the course seeding function."""
+from django.core.management import call_command
+
 def initiate():
-    print("Populate not implemented. Add data manually")
+    call_command("seed_cars")

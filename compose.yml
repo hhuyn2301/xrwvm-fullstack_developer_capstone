@@ -1,0 +1,61 @@
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./server/database
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/dealershipsDB
+      PORT: "3030"
+      WRITE_API_TOKEN: ${WRITE_API_TOKEN:?Set WRITE_API_TOKEN in .env}
+    ports:
+      - "3030:3030"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  sentiment:
+    build:
+      context: ./server/djangoapp/microservices
+    environment:
+      PORT: "5050"
+    ports:
+      - "5050:5050"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECURE_COOKIES: ${DJANGO_SECURE_COOKIES:-0}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
+      DB_PATH: /app/data/db.sqlite3
+      BACKEND_URL: http://backend:3030
+      SENTIMENT_ANALYZER_URL: http://sentiment:5050
+      BACKEND_WRITE_API_TOKEN: ${WRITE_API_TOKEN:?Set WRITE_API_TOKEN in .env}
+    ports:
+      - "8000:8000"
+    volumes:
+      - django_data:/app/data
+    depends_on:
+      - backend
+      - sentiment
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  django_data:

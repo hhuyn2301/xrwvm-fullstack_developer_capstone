@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "scope": "Actual local HTTP requests across Django, Express, MongoDB 7.0.16, Flask and the built React assets.",
+  "checks": {
+    "express_health": {
+      "status": "ok",
+      "database": "connected"
+    },
+    "sentiment_health": {
+      "status": "ok",
+      "lexicon": "bundled-vader"
+    },
+    "django_health": {
+      "status": "ok",
+      "service": "dealership-django"
+    },
+    "frontend_and_assets_http": {
+      "page": 200,
+      "assets": [
+        "/static/react/index-D3JYFul1.js",
+        "/static/react/index-1xFF9DiA.css"
+      ]
+    },
+    "csrf_without_cookie_status": 403,
+    "anonymous_review_status": 401,
+    "dealer_count": 50,
+    "kansas_dealer_count": 1,
+    "kansas_dealer_id": 8,
+    "dealer_15_name": "Tempsoft Car Dealership",
+    "dealer_15_initial_review_count": 3,
+    "reviews_enriched_by_live_sentiment_service": true,
+    "car_model_count": 153,
+    "car_make_count": 5,
+    "sentiment_proxy": {
+      "sentiment": "positive",
+      "scores": {
+        "neg": 0.0,
+        "neu": 0.122,
+        "pos": 0.878,
+        "compound": 0.8016
+      }
+    },
+    "registration_status": 201,
+    "registered_session_authenticated": true,
+    "duplicate_username_status": 409,
+    "logout_cleared_session": true,
+    "invalid_login_status": 401,
+    "login_status": 200,
+    "review_post_status": 201,
+    "posted_review_matches_readback": {
+      "id": 51,
+      "name": "integration_reviewer",
+      "dealership": 15,
+      "review": "Excellent friendly service and a clear explanation of the purchase.",
+      "purchase": true,
+      "purchase_date": "2023-09-10",
+      "car_make": "Audi",
+      "car_model": "A4",
+      "car_year": 2021,
+      "createdAt": "2026-11-25T20:41:50.421Z",
+      "updatedAt": "2026-11-25T20:41:50.421Z",
+      "sentiment": "positive"
+    },
+    "author_taken_from_authenticated_session": true,
+    "logged_out_review_rejected": true
+  },
+  "limits": "No public deployment, GitHub Actions run, Docker build or submission screenshots are represented by this test."
+}
