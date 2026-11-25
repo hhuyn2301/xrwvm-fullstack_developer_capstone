@@ -12,7 +12,7 @@ import tempfile
 import time
 import urllib.request
 from urllib.parse import urlsplit
-from PIL import ImageGrab
+from PIL import ImageGrab, ImageStat
 from playwright.sync_api import sync_playwright, expect
 
 parser = argparse.ArgumentParser()
@@ -34,6 +34,17 @@ OUT = Path(args.output).resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 RUNTIME = Path(tempfile.mkdtemp(prefix="dealership-capture-"))
 captures = []
+# This profile is created only for this CI capture run; no user profile is touched.
+BROWSER_PROFILE = RUNTIME / "browser-profile"
+PROFILE_DEFAULT = BROWSER_PROFILE / "Default"
+PROFILE_DEFAULT.mkdir(parents=True)
+(PROFILE_DEFAULT / "Preferences").write_text(json.dumps({
+    "credentials_enable_service": False,
+    "profile": {
+        "password_manager_enabled": False,
+        "password_manager_leak_detection": False,
+    },
+}))
 
 def wait_http(url, limit=90):
     deadline = time.monotonic() + limit
@@ -47,8 +58,30 @@ def wait_http(url, limit=90):
     raise RuntimeError("Service did not become ready: " + url)
 
 def capture(name, page=None, note=""):
-    time.sleep(0.5)
-    ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).save(OUT / name)
+    if page is not None:
+        page.bring_to_front()
+        # Wait for browser rendering without changing the page or screenshot.
+        # The timer bounds this synchronization if animation frames are throttled.
+        page.evaluate("""() => new Promise(resolve => {
+            const timer = setTimeout(resolve, 1000);
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                clearTimeout(timer);
+                resolve();
+            }));
+        })""")
+    for attempt in range(10):
+        time.sleep(0.6)
+        desktop = ImageGrab.grab(xdisplay=os.environ["DISPLAY"])
+        # Inspect the original image, but save it unchanged. A solid-white/black
+        # X11 frame is a compositor/startup race, not valid UI evidence.
+        spread = ImageStat.Stat(desktop.convert("RGB")).stddev
+        if max(spread) > 2:
+            desktop.save(OUT / name)
+            break
+        if page is not None:
+            page.bring_to_front()
+    else:
+        raise RuntimeError("Refused blank desktop screenshot after retries: " + name)
     captures.append({
         "file": name,
         "url": page.url if page else None,
@@ -76,7 +109,7 @@ try:
         terminal = None
     with sync_playwright() as p:
      context=p.chromium.launch_persistent_context(
-      str(RUNTIME/'browser-profile'),
+      str(BROWSER_PROFILE),
       headless=False,no_viewport=True,env=env,
       args=['--no-sandbox','--disable-dev-shm-usage','--window-size=1440,1200',
             '--window-position=0,0','--no-first-run','--disable-session-crashed-bubble'],
